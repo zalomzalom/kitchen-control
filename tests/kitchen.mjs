@@ -131,6 +131,20 @@ for (const role of ["owner", "manager", "admin", "chef", "sous"]) {
   await ctx.close();
 }
 
+// 9. телефон 390×844: ни один экран не вылезает по ширине, зоны касания в нижнем меню ≥ 44 px
+{
+  const { ctx, page } = await open("role=owner", { width: 390, height: 844 });
+  let wide = [];
+  for (const [r, t] of [["home"], ["stock"], ["stock", "exp"], ["orders"], ["recipes"], ["staff"], ["staff", "sched"], ["vendors"], ["vendors", "sup"], ["control"], ["control", "lists"], ["reports"]]) {
+    await page.evaluate(([r, t]) => KC.go(r, t), [r, t]);
+    if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1 || document.querySelector("#main").scrollWidth > document.querySelector("#main").clientWidth + 1)) wide.push(r + (t ? ":" + t : ""));
+  }
+  check("телефон: нет горизонтальной прокрутки на экранах", wide.length === 0, wide.join(","));
+  const small = await page.$$eval(".nav-i", (e) => e.filter((x) => x.getBoundingClientRect().height < 44).length);
+  check("телефон: кнопки нижнего меню ≥ 44 px", small === 0);
+  await ctx.close();
+}
+
 check("нет ошибок JavaScript в консоли", errs.length === 0, errs.join(" | "));
 await browser.close(); server.close();
 process.exit(results.every(Boolean) ? 0 : 1);

@@ -33,6 +33,7 @@ function renderSide() {
   const nv = $('#side .nav'); $$('.nav-i', nv).forEach(b => b.remove());
   nv.insertAdjacentHTML('beforeend', r.nav.map(id => `<button class="nav-i ${id === ui.route ? 'on' : ''}" data-a="go" data-r="${id}">${ic(NAV[id][1], 24)}<span>${NAV[id][0]}</span>${bd[id] ? `<em class="bg ${id === 'stock' ? 'wn' : ''}" style="font-style:normal">${bd[id]}</em>` : ''}</button>`).join(''));
   const i = Math.max(0, r.nav.indexOf(ui.route)); $('.nav-ind').style.transform = `translateY(${i * 56}px)`;
+  const on = $('.nav-i.on'); if (on && on.scrollIntoView && innerWidth <= 640) on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   $('#meav').innerHTML = avatar({ ...u, on: false }); $('#mename').textContent = u.name; $('#merole').textContent = r.n;
 }
 function renderTop() {
