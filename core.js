@@ -10,34 +10,34 @@ const KEY = 'kc.v1';
 /* ───── состояние ───── */
 let S;
 const load = () => { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 1) return j; } catch (e) {} return null; };
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} if (window.KC && window.KC.onSave) window.KC.onSave(); };
 const pad = n => String(n).padStart(2, '0');
 const isoD = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const day = n => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + n); return isoD(x); };
 const addDays = (iso, n) => { const x = new Date(iso + 'T12:00:00'); x.setDate(x.getDate() + n); return isoD(x); };
 const dd = iso => Math.round((new Date(iso + 'T12:00:00') - new Date(day(0) + 'T12:00:00')) / 864e5);
 S = load() || window.KC_SEED();
-S.checklists.forEach(c => { if (c.date !== day(0)) { c.done = []; c.date = day(0); c.by = ''; c.at = ''; } });
+const rollover = () => S.checklists.forEach(c => { if (c.date !== day(0)) { c.done = []; c.date = day(0); c.by = ''; c.at = ''; } });
+S.seen = S.seen || {}; S.staff.forEach(e => { if (!e.pin) e.pin = '1111'; }); rollover();
 
 /* ───── роли ───── */
+const FEED_ALL = ['temp', 'exp', 'list', 'recv', 'low', 'appr', 'med', 'ven'];
 const ROLES = {
-  owner:   { n: 'Руководитель', user: 'e1', ic: 'crown', d: 'Финансы, себестоимость, подрядчики и общая картина по ресторану', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1,
-    nav: ['home', 'reports', 'stock', 'orders', 'recipes', 'staff', 'vendors', 'control'], kpis: ['fc', 'waste7', 'spend7', 'stockValue'],
-    blocks: [['g21', ['attention', 'shifts']], ['g12', ['vendorsNext', 'trend']]] },
-  manager: { n: 'Управляющий', user: 'e2', ic: 'clip', d: 'Смены, закупки, контроль санитарии и отклонений', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1,
-    nav: ['home', 'reports', 'stock', 'orders', 'recipes', 'staff', 'vendors', 'control'], kpis: ['onShift', 'fc', 'waste7', 'vendorsDue'],
-    blocks: [['g21', ['attention', 'shifts']], ['g2', ['checklists', 'vendorsNext']]] },
-  admin:   { n: 'Менеджер', user: 'e3', ic: 'users', d: 'График команды, заявки, визиты подрядчиков', money: 1, approve: 0, staffEdit: 1, vendorEdit: 1,
-    nav: ['home', 'orders', 'staff', 'vendors', 'stock', 'control'], kpis: ['onShift', 'orders', 'vendorsDue', 'medbooks'],
-    blocks: [['g21', ['attention', 'shifts']], ['g2', ['ordersMini', 'vendorsNext']]] },
-  chef:    { n: 'Шеф-повар', user: 'e4', ic: 'chef', d: 'Склад, тех. карты, себестоимость блюд, списания', money: 1, approve: 1, staffEdit: 0, vendorEdit: 0,
-    nav: ['home', 'stock', 'orders', 'recipes', 'control', 'staff'], kpis: ['low', 'expiring', 'temps', 'openCl'],
-    blocks: [['g21', ['attention', 'expiringList']], ['g2', ['tempsMini', 'shifts']]] },
-  sous:    { n: 'Су-шеф', user: 'e5', ic: 'flame', d: 'Приёмка, сроки годности, температурный журнал, чек-листы', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0,
-    nav: ['home', 'stock', 'orders', 'recipes', 'control'], kpis: ['low', 'expiring', 'temps', 'openCl'],
-    blocks: [['g21', ['attention', 'checklists']], ['g2', ['expiringList', 'tempsMini']]] },
+  owner:   { n: 'Руководитель', user: 'e1', ic: 'crown', d: 'Деньги, подрядчики и всё, что требует решения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: FEED_ALL,
+    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks'], kpis: ['fc', 'waste7', 'spend7'], blocks: [['g21', ['feed', 'shifts']], ['g1', ['trend']]] },
+  manager: { n: 'Управляющий', user: 'e2', ic: 'clip', d: 'Смены, закупки, проверки и отклонения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: FEED_ALL,
+    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks'], kpis: ['onShift', 'fc', 'waste7'], blocks: [['g21', ['feed', 'shifts']]] },
+  admin:   { n: 'Менеджер', user: 'e3', ic: 'users', d: 'График команды, заявки, визиты подрядчиков', money: 1, approve: 0, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: ['temp', 'list', 'recv', 'low', 'med', 'ven'],
+    nav: ['home', 'orders', 'team', 'checks', 'stock'], kpis: ['onShift', 'orders', 'vendorsDue'], blocks: [['g21', ['feed', 'shifts']]] },
+  chef:    { n: 'Шеф-повар', user: 'e4', ic: 'chef', d: 'Склад, блюда и их себестоимость, списания', money: 1, approve: 1, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low', 'appr'],
+    nav: ['home', 'stock', 'orders', 'dishes', 'checks'], kpis: ['low', 'expiring'], blocks: [['g21', ['feed', 'tempsMini']]] },
+  sous:    { n: 'Су-шеф', user: 'e5', ic: 'flame', d: 'Приёмка, сроки годности, температуры, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low'],
+    nav: ['home', 'stock', 'orders', 'checks'], kpis: [], blocks: [['g21', ['feed', 'tempsMini']]] },
+  cook:    { n: 'Повар', user: 'e6', ic: 'knife', d: 'Списать продукт, записать температуру, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list'], cook: 1, simple: 1,
+    nav: ['home', 'stock', 'checks'], kpis: [], blocks: [] },
 };
-const NAV = { home: ['Обзор', 'home'], reports: ['Аналитика', 'chart'], stock: ['Склад', 'box'], orders: ['Закупки', 'cart'], recipes: ['Тех. карты', 'chef'], staff: ['Команда', 'users'], vendors: ['Подрядчики', 'truck'], control: ['Контроль', 'shield'] };
+const NAV = { home: ['Главная', 'home'], money: ['Деньги', 'chart'], stock: ['Склад', 'box'], orders: ['Закупки', 'cart'], dishes: ['Блюда', 'chef'], team: ['Команда', 'users'], checks: ['Проверки', 'shield'] };
+const DEV = ['role', 'theme', 'sync', 'seen'];
 const R = () => ROLES[S.role] || ROLES.owner;
 const me = () => S.staff.find(e => e.id === R().user);
 const $money = () => !!R().money;
@@ -77,6 +77,9 @@ const IC = {
   star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
   doc: '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   knife: '<path d="M4 20L15 9c3-3 5-4 5-4s-.5 3-3 6L9 16z"/><path d="M4 20l3-3"/>',
 };
 const ic = (n, s = 22) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${IC[n] || ''}</svg>`;
@@ -127,24 +130,30 @@ const medState = e => { if (e.med === null) return null; const d = dd(e.med); re
 const sugQty = p => { const need = Math.max(p.min * 2 - p.stock, p.min); return ['кг', 'л'].includes(p.unit) ? Math.ceil(need * 2) / 2 : Math.ceil(need); };
 const stepOf = p => ['кг', 'л'].includes(p.unit) ? .5 : 1;
 
-/* ───── уведомления «требует внимания» ───── */
-function alerts() {
-  const a = [];
-  S.temps.filter(t => !tOk(t)).forEach(t => a.push({ s: 0, tone: 'bd', ic: 'therm', t: t.name + ': ' + n1(tLast(t).v, 1) + '°', d: 'Норма ' + t.lo + '…' + t.hi + '° · ' + agoTs(tLast(t).ts), go: 'control', tab: 'temps' }));
-  const e0 = expList(1);
-  if (e0.length) a.push({ s: 0, tone: 'bd', ic: 'clock', t: 'Срок истекает сегодня-завтра: ' + e0.length + NB + pl(e0.length, ['позиция', 'позиции', 'позиций']), d: e0.slice(0, 3).map(p => p.name).join(', '), go: 'stock', tab: 'exp' });
-  S.staff.filter(e => e.med !== null && dd(e.med) < 0).forEach(e => a.push({ s: 0, tone: 'bd', ic: 'doc', t: e.name + ': мед. книжка просрочена', d: 'С ' + dm(e.med) + ' · не допускать к работе', go: 'staff', emp: e.id }));
-  S.vendors.filter(v => v.kind === 'contractor' && dd(nextVisit(v)) < 0).forEach(v => a.push({ s: 0, tone: 'bd', ic: 'truck', t: v.name + ': визит просрочен', d: v.svc + ' · ' + rel(nextVisit(v)), go: 'vendors', ven: v.id }));
-  const lo = lowList();
-  if (lo.length) a.push({ s: 1, tone: 'wn', ic: 'box', t: 'Ниже минимума: ' + lo.length + NB + pl(lo.length, ['позиция', 'позиции', 'позиций']), d: lo.slice(0, 3).map(p => p.name).join(', ') + (lo.length > 3 ? '…' : ''), go: 'orders' });
-  const e2 = expList(4).filter(p => dd(p.exp) > 1);
-  if (e2.length) a.push({ s: 1, tone: 'wn', ic: 'clock', t: 'Скоро срок годности: ' + e2.length + NB + pl(e2.length, ['позиция', 'позиции', 'позиций']), d: e2.slice(0, 3).map(p => p.name).join(', '), go: 'stock', tab: 'exp' });
-  S.staff.filter(e => e.med !== null && dd(e.med) >= 0 && dd(e.med) <= 30).forEach(e => a.push({ s: 1, tone: 'wn', ic: 'doc', t: e.name + ': мед. книжка кончается', d: 'Через ' + dd(e.med) + NB + pl(dd(e.med), ['день', 'дня', 'дней']) + ' · ' + e.pos, go: 'staff', emp: e.id }));
-  S.vendors.filter(v => v.kind === 'contractor' && dd(v.till) <= 30).forEach(v => a.push({ s: 1, tone: 'wn', ic: 'doc', t: v.name + ': договор заканчивается', d: dd(v.till) + NB + pl(dd(v.till), ['день', 'дня', 'дней']) + ' до ' + dm(v.till), go: 'vendors', ven: v.id }));
-  S.orders.filter(o => o.st === 'sent' && dd(o.eta) <= 0).forEach(o => a.push({ s: 2, tone: 'in', ic: 'inbox', t: 'Ждём поставку: ' + vend(o.sup).name, d: 'Сегодня · ' + o.items.length + NB + pl(o.items.length, ['позиция', 'позиции', 'позиций']), go: 'orders', tab: 'list' }));
-  S.orders.filter(o => o.st === 'pending').forEach(o => a.push({ s: 2, tone: 'in', ic: 'send', t: 'Заявка ждёт согласования: ' + vend(o.sup).name, d: emp(o.by)?.name || '', go: 'orders', tab: 'list' }));
+/* ───── «Что сделать сейчас»: лента задач с кнопкой действия у каждой ───── */
+const SLOTS = [8, 14, 20];
+const slotStart = () => { const h = new Date().getHours(), s = [...SLOTS].reverse().find(x => h >= x); if (s == null) return null; const d = new Date(); d.setHours(s, 0, 0, 0); return d.getTime(); };
+const tempDue = () => { const st = slotStart(); return st == null ? [] : S.temps.filter(t => tOk(t) && tLast(t).ts < st); };
+function feed() {
+  const a = [], ok = R().feed, plN = (n, w) => n + NB + pl(n, w);
+  const add = (k, x) => { if (ok.includes(k)) a.push({ k, ...x }); };
+  S.temps.filter(t => !tOk(t)).forEach(t => add('temp', { s: 0, tone: 'bd', ic: 'therm', t: t.name + ': ' + n1(tLast(t).v, 1) + '° — вне нормы', d: 'Норма ' + t.lo + '…' + t.hi + '° · ' + agoTs(tLast(t).ts), btn: 'Записать замер', a: 'temp', data: { id: t.id } }));
+  expList(1).slice(0, 3).forEach(p => { const d = dd(p.exp); add('exp', { s: 0, tone: 'bd', ic: 'clock', t: p.name + ' — ' + (d <= 0 ? 'срок вышел' : 'остался 1 день'), d: n1(p.stock) + ' ' + p.unit + ' · ' + p.loc, btn: 'Списать', a: 'op', data: { p: p.id, t: 'waste' }, btn2: 'В работу', a2: 'op', data2: { p: p.id, t: 'out' } }); });
+  S.staff.filter(e => e.med !== null && dd(e.med) < 0).forEach(e => add('med', { s: 0, tone: 'bd', ic: 'doc', t: e.name + ': медкнижка просрочена', d: 'С ' + dm(e.med) + ' · не допускать к работе', btn: 'Открыть', a: 'emp', data: { id: e.id } }));
+  S.vendors.filter(v => v.kind === 'contractor' && dd(nextVisit(v)) < 0).forEach(v => add('ven', { s: 0, tone: 'bd', ic: 'truck', t: v.name + ': визит просрочен', d: v.svc + ' · ' + rel(nextVisit(v)), tel: v.phone.replace(/[^+\d]/g, ''), btn: 'Отметить визит', a: 'visit', data: { id: v.id } }));
+  S.orders.filter(o => o.st === 'pending').forEach(o => add('appr', { s: 1, tone: 'wn', ic: 'send', t: 'Согласовать заявку: ' + vend(o.sup).name, d: (emp(o.by)?.name || '') + ' · ' + plN(o.items.length, ['позиция', 'позиции', 'позиций']), btn: 'Согласовать', a: 'approve', data: { id: o.id } }));
+  const due = tempDue(); if (due.length) add('temp', { s: 1, tone: 'wn', ic: 'therm', t: 'Пора измерить температуру: ' + plN(due.length, ['камера', 'камеры', 'камер']), d: due.slice(0, 3).map(t => t.name).join(', '), btn: 'Записать', a: 'temp', data: { id: due[0].id } });
+  S.orders.filter(o => o.st === 'sent' && dd(o.eta) <= 0).forEach(o => add('recv', { s: 1, tone: 'in', ic: 'inbox', t: 'Ждём товар от ' + vend(o.sup).name, d: 'Сегодня · ' + plN(o.items.length, ['позиция', 'позиции', 'позиций']), btn: 'Принять', a: 'ord', data: { id: o.id } }));
+  const k1 = S.checklists[0], k2 = S.checklists[1];
+  if (k1.done.length < k1.items.length) add('list', { s: 1, tone: 'wn', ic: 'check', t: 'Открытие кухни: ' + k1.done.length + ' из ' + k1.items.length, d: 'Осталось ' + plN(k1.items.length - k1.done.length, ['пункт', 'пункта', 'пунктов']), btn: 'Продолжить', a: 'go', data: { r: 'checks', tab: 'lists' } });
+  if (new Date().getHours() >= 19 && k2.done.length < k2.items.length) add('list', { s: 1, tone: 'wn', ic: 'moon', t: 'Закрытие кухни: ' + k2.done.length + ' из ' + k2.items.length, d: 'Не забудьте подписать', btn: 'Открыть', a: 'go', data: { r: 'checks', tab: 'lists' } });
+  const e2 = expList(4).filter(p => dd(p.exp) > 1); if (e2.length) add('exp', { s: 2, tone: 'wn', ic: 'clock', t: 'Скоро срок: ' + plN(e2.length, ['продукт', 'продукта', 'продуктов']), d: e2.slice(0, 3).map(p => p.name).join(', '), btn: 'Что использовать', a: 'go', data: { r: 'stock', tab: 'exp' } });
+  const lo = lowList(); if (lo.length) add('low', { s: 2, tone: 'wn', ic: 'box', t: 'Заканчивается: ' + plN(lo.length, ['продукт', 'продукта', 'продуктов']), d: lo.slice(0, 3).map(p => p.name).join(', ') + (lo.length > 3 ? '…' : ''), btn: 'Заказать', a: 'go', data: { r: 'orders' } });
+  S.staff.filter(e => e.med !== null && dd(e.med) >= 0 && dd(e.med) <= 30).forEach(e => add('med', { s: 2, tone: 'wn', ic: 'doc', t: e.name + ': медкнижка кончается', d: 'Через ' + plN(dd(e.med), ['день', 'дня', 'дней']), btn: 'Открыть', a: 'emp', data: { id: e.id } }));
+  S.vendors.filter(v => v.kind === 'contractor' && dd(v.till) >= 0 && dd(v.till) <= 30).forEach(v => add('ven', { s: 2, tone: 'wn', ic: 'doc', t: v.name + ': договор заканчивается', d: 'Через ' + plN(dd(v.till), ['день', 'дня', 'дней']) + ' · ' + dm(v.till), tel: v.phone.replace(/[^+\d]/g, ''), btn: 'Открыть', a: 'ven', data: { id: v.id } }));
   return a.sort((x, y) => x.s - y.s);
 }
+const alerts = feed;
 
 /* ───── компоненты ───── */
 const chip = (t, label, icon) => `<span class="chip ${t}">${icon ? ic(icon, 14) : ''}${label}</span>`;
@@ -189,5 +198,5 @@ function donut(items, centerTop, centerSub) {
 }
 const legend = items => `<div class="lgd">${items.map((it, i) => `<div><i style="background:${PAL[i % PAL.length]}"></i>${esc(it.n)}<b>${it.t}</b></div>`).join('')}</div>`;
 
-window.KC = { S: () => S, set: s => { S = s; }, save, $, $$, QS, reduced, ROLES, NAV, R, me, $money, ic, IC, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, hm, FM, hue, ini, avatar, day, addDays, dd, isoD, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, dow, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, alerts, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, toneOf, pad };
+window.KC = { rollover, DEV, tempDue, feed, S: () => S, set: s => { S = s; }, save, $, $$, QS, reduced, ROLES, NAV, R, me, $money, ic, IC, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, hm, FM, hue, ini, avatar, day, addDays, dd, isoD, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, dow, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, alerts, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, toneOf, pad };
 })();

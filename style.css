@@ -368,6 +368,38 @@ button.tile:active{transform:scale(.975)}
 @media (max-height:480px) and (orientation:landscape){
   .app{padding:6px;gap:8px}.top{padding-bottom:6px}.top .sub{display:none}.main{padding-bottom:8px}.hello{display:none}
 }
+
+/* ───── v2: простота — крупные кнопки повара, лента дел, PIN, отмена, подсказки ───── */
+.g1{grid-template-columns:minmax(0,1fr)}
+.app.noside{grid-template-columns:minmax(0,1fr)}.app.noside .side{display:none}
+.usr{display:flex;align-items:center;gap:10px;height:50px;padding:0 16px 0 6px;border-radius:25px;background:var(--s1);border:1px solid var(--ln);text-align:left;transition:transform .2s}
+.usr:active{transform:scale(.96)}.usr .avatar{width:38px;height:38px;font-size:13px}.usr b{display:block;font-size:14px;line-height:1.15}.usr small{color:var(--mu);font-size:12px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:200px;padding:24px;border-radius:30px;background:var(--s1);border:1px solid var(--ln);text-align:left;transition:transform .3s var(--spring),border-color .25s;width:100%}
+.act:active{transform:scale(.96)}.act:hover{border-color:var(--ln2)}
+.act .ai{width:76px;height:76px;border-radius:24px;display:grid;place-items:center;background:var(--acb);color:var(--ac);margin-bottom:6px}
+.act.bd .ai{background:var(--bdb);color:var(--bd)}.act.wn .ai{background:var(--wnb);color:var(--wn)}.act.ok .ai{background:var(--okb);color:var(--ok)}
+.act.bd{border-color:rgba(255,92,92,.35)}.act.wn{border-color:rgba(255,194,71,.3)}
+.act b{font-size:25px;letter-spacing:-.015em;line-height:1.15}.act small{color:var(--mu);font-size:15px}
+.fi .tx b,.fi .tx small{white-space:normal}.fi .end{flex-wrap:wrap;justify-content:flex-end}
+.thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:none}.thumb.big{width:112px;height:112px;border-radius:16px}
+.btn.photo{cursor:pointer}
+.tbtn{margin-left:6px;height:40px;padding:0 16px;border-radius:12px;background:rgba(0,0,0,.14);font-weight:800;color:inherit;transition:transform .15s var(--spring)}.tbtn:active{transform:scale(.92)}
+.dots{display:flex;gap:14px;justify-content:center;margin:6px 0}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ln2);transition:background .2s,transform .3s var(--spring),border-color .2s}
+.dots i.on{background:var(--ac);border-color:var(--ac);transform:scale(1.2)}.dots.big{gap:22px;margin:16px 0}.dots.big i{width:22px;height:22px}
+.shake{animation:shake .45s}@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.gt.pin{max-width:420px;display:flex;flex-direction:column;align-items:center;text-align:center}.gt.pin>.btn{align-self:flex-start}
+.pin-c{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;margin-top:10px}.pin-c h1{font-size:28px}.pin-c p{margin:0 0 4px;font-size:16px}
+.pk{width:100%;max-width:340px}.pk .key{height:68px}
+.code{font-size:34px;font-weight:800;letter-spacing:.16em;margin-top:4px;user-select:all;-webkit-user-select:all}
+.onb{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:10px 0 4px}.onb h3{font-size:25px;letter-spacing:-.02em}.onb p{color:var(--mu);font-size:16px;max-width:420px;line-height:1.45}
+@media (max-width:640px){
+  .app.noside{grid-template-rows:minmax(0,1fr)}
+  .usr{padding:0;width:46px;height:46px;justify-content:center}.usr>div:not(.avatar){display:none}.usr .avatar{width:44px;height:44px}.hd-d{display:none}
+  .acts{gap:10px}.act{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ai b" "ai s";column-gap:16px;row-gap:2px;align-items:center;min-height:0;padding:16px;border-radius:24px}
+  .act .ai{grid-area:ai;width:64px;height:64px;margin:0}.act b{grid-area:b;font-size:20px;align-self:end}.act small{grid-area:s;font-size:14px;align-self:start}
+  .fi{flex-wrap:wrap}.fi .end{flex:1 0 100%;justify-content:stretch}.fi .end .btn{flex:1}
+  .gt.pin{padding-top:6px}.pk .key{height:62px}
+}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}
   body::before,body::after{animation:none}
