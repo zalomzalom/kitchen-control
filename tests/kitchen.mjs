@@ -17,7 +17,7 @@ const server = http.createServer((q, s) => {
   let p = q.url.split("?")[0]; if (p === "/") p = "/index.html";
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { s.writeHead(404).end(); return; }
-  const t = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".webmanifest": "application/json" }[path.extname(f)] ?? "application/octet-stream";
+  const t = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/json" }[path.extname(f)] ?? "application/octet-stream";
   s.writeHead(200, { "Content-Type": t + "; charset=utf-8" }).end(fs.readFileSync(f));
 });
 await new Promise((r) => server.listen(0, r));

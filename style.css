@@ -400,6 +400,16 @@ button.tile:active{transform:scale(.975)}
   .fi{flex-wrap:wrap}.fi .end{flex:1 0 100%;justify-content:stretch}.fi .end .btn{flex:1}
   .gt.pin{padding-top:6px}.pk .key{height:62px}
 }
+
+/* ───── Rifugio del Monte ───── */
+.rl{display:block;height:auto;max-width:100%}
+[data-theme=dark] .rl-n,[data-theme=light] .rl-w{display:none}
+.side-for{margin-top:auto;padding:14px 12px 6px;opacity:.92}.side-for small{display:block;color:var(--mu);font-size:11px;letter-spacing:.04em;margin-bottom:8px}.side-for .rl{width:150px}
+.gt-for .rl{width:230px;margin-bottom:20px}
+.about{margin-top:22px;padding:18px;border-radius:18px;background:var(--s2);text-align:center}.about .rl{width:200px;margin:0 auto 10px}.about small{color:var(--mu);font-size:13px}
+.sp-rl{width:240px;height:auto;opacity:0;animation:spT 1.1s 1.8s var(--ease) forwards;margin-top:-8px}
+@media (max-width:1000px){.side-for{display:none}}
+@media (max-width:640px){.gt-for .rl{width:190px;margin-bottom:12px}.sp-rl{width:200px}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}
   body::before,body::after{animation:none}

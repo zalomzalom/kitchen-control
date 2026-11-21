@@ -18,6 +18,7 @@ const addDays = (iso, n) => { const x = new Date(iso + 'T12:00:00'); x.setDate(x
 const dd = iso => Math.round((new Date(iso + 'T12:00:00') - new Date(day(0) + 'T12:00:00')) / 864e5);
 S = load() || window.KC_SEED();
 const rollover = () => S.checklists.forEach(c => { if (c.date !== day(0)) { c.done = []; c.date = day(0); c.by = ''; c.at = ''; } });
+if (S.venue === 'Ресторан «Север»') S.venue = 'Rifugio del Monte';
 S.seen = S.seen || {}; S.staff.forEach(e => { if (!e.pin) e.pin = '1111'; }); rollover();
 
 /* ───── роли ───── */

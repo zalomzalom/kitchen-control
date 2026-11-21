@@ -121,7 +121,7 @@ window.KC_SEED = function () {
   ];
 
   return {
-    v: 1, venue: 'Ресторан «Север»', theme: 'dark', role: '', targetFC: 32,
+    v: 1, venue: 'Rifugio del Monte', theme: 'dark', role: '', targetFC: 32,
     products, recipes, vendors, orders, mv, staff, temps, checklists,
     hist: { fc: [34.1, 33.2, 35.0, 32.8, 31.9, 33.5, 32.4], spend: [212, 238, 226, 251, 219, 244, 232, 228], waste: [9.8, 11.2, 8.4, 12.9, 7.6, 9.1, 10.3, 6.4], wk: ['3 окт', '10 окт', '17 окт', '24 окт', '31 окт', '7 ноя', '14 ноя', 'Сейчас'] },
     seq: 100,

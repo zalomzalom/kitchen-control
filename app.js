@@ -5,6 +5,7 @@ const { $, $$, ic, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, hm, avatar, dd, da
 ui.np = { val: '', neg: false, act: '', photo: null }; ui.form = {}; ui.rcv = {}; ui.vs = { rating: 5, note: '' }; ui.pin = { id: '', val: '', err: false, mode: 'login' };
 let sheetFn = null, authed = false, undoSnap = null;
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const rl = (c = '') => `<img class="rl rl-n ${c}" src="logo-navy.png" alt="Rifugio del Monte"><img class="rl rl-w ${c}" src="logo-white.png" alt="Rifugio del Monte">`;
 
 /* ───── утилиты ───── */
 function toast(msg, tone = '', undo) {
@@ -51,7 +52,7 @@ function parseVoice(text, def = 'waste') {
 const TABS_TITLE = { lists: 'Мои задачи', temps: 'Температуры' };
 function renderSide() {
   const r = R(), u = me(); $('#app').classList.toggle('noside', !!r.cook);
-  if (!$('#side .nav')) $('#side').innerHTML = `<div class="brand"><svg viewBox="0 0 100 100"><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffb347"/></linearGradient></defs><rect width="100" height="100" rx="26" fill="url(#bg1)"/><path d="M50 22c3 11 17 15 17 31a17 17 0 0 1-34 0c0-7 3-11 7-15 0 6 3 10 7 10 0-12-4-19 3-26z" fill="#1d0d02"/></svg><div><b>Kitchen<br>Control</b></div></div><nav class="nav"><i class="nav-ind"></i></nav>`;
+  if (!$('#side .nav')) $('#side').innerHTML = `<div class="brand"><svg viewBox="0 0 100 100"><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffb347"/></linearGradient></defs><rect width="100" height="100" rx="26" fill="url(#bg1)"/><path d="M50 22c3 11 17 15 17 31a17 17 0 0 1-34 0c0-7 3-11 7-15 0 6 3 10 7 10 0-12-4-19 3-26z" fill="#1d0d02"/></svg><div><b>Kitchen<br>Control</b></div></div><nav class="nav"><i class="nav-ind"></i></nav><div class="side-for"><small>создано специально для</small>${rl()}</div>`;
   const f = feed(), cnt = k => f.filter(x => x.k === k).length;
   const bd = { stock: K.lowList().length, orders: cnt('appr') + cnt('recv'), checks: S.temps.filter(t => !tOk(t)).length + K.tempDue().length + cnt('ven'), team: cnt('med') };
   const nv = $('#side .nav'); $$('.nav-i', nv).forEach(b => b.remove());
@@ -206,7 +207,7 @@ const sMe = () => { const u = me(), r = R(), sy = S.sync; return { title: 'Пр�
   <div class="sec">Общие данные на нескольких планшетах</div>
   ${sy ? `<div class="card" style="background:var(--s2);padding:14px"><div class="mu" style="font-size:13px">Код заведения (введите его на другом планшете)</div><div class="code">${sy.code}</div><div class="mu" style="font-size:13px;margin-top:6px">${ui.syncMsg || (sy.at ? 'Обновлено в ' + hm(sy.at) : 'Подключаемся…')}</div></div><div style="margin-top:10px"><button class="btn bd sm" data-a="syncOff">Отключить на этом планшете</button></div>`
     : `<div class="mu" style="font-size:14px;margin-bottom:10px">Сейчас данные хранятся только на этом планшете. Включите общий доступ — и остальные увидят те же остатки и задачи.</div><div class="g g2" style="gap:10px"><button class="btn pri" data-a="syncOn">Включить</button><button class="btn" data-a="syncJoin">Ввести код</button></div>`}
-  <div class="sec">Прочее</div><div class="g g2" style="gap:10px"><button class="btn" data-a="onbAgain">Показать подсказки</button><button class="btn bd" data-a="reset">Сбросить демо-данные</button></div>` }; };
+  <div class="sec">Прочее</div><div class="g g2" style="gap:10px"><button class="btn" data-a="onbAgain">Показать подсказки</button><button class="btn bd" data-a="reset">Сбросить демо-данные</button></div><div class="about">${rl()}<small>Kitchen Control создан специально для Rifugio del Monte</small></div>` }; };
 const sPinChange = () => { const p = ui.pin; return { title: 'Новый PIN', sub: 'Четыре цифры. Его знаете только вы',
   body: `<div class="dots big">${[0, 1, 2, 3].map(i => `<i class="${i < p.val.length ? 'on' : ''}"></i>`).join('')}</div><div class="kp">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => k ? `<button class="key ${k === '⌫' ? 'f' : ''}" data-a="pk" data-k="${k}">${k}</button>` : '<span></span>').join('')}</div>` }; };
 const sJoin = () => ({ title: 'Подключиться к данным', sub: 'Данные на этом планшете будут заменены общими',
@@ -226,7 +227,7 @@ const sOnb = () => { const o = ONB[ui.ob.role], i = ui.ob.i, [icn, t, d] = o[i];
 /* ───── вход, PIN, блокировка ───── */
 function gate() {
   authed = false; const g = $('#gate'); g.hidden = false; $('#app').hidden = true; g.className = 'enter';
-  g.innerHTML = `<div class="gt"><h1 data-s>Kitchen Control</h1><p data-s>${esc(S.venue)} · кто вы?</p><div class="gt-g">${Object.entries(ROLES).map(([id, r]) => `<button class="role" data-s data-a="who" data-id="${id}"><span class="ri">${ic(r.ic, 28)}</span><b>${r.n}</b><span>${esc(r.d)}</span><em>${esc(S.staff.find(e => e.id === r.user).name)}</em></button>`).join('')}</div></div>`;
+  g.innerHTML = `<div class="gt"><div class="gt-for" data-s>${rl()}</div><h1 data-s>Kitchen Control</h1><p data-s>Кто вы?</p><div class="gt-g">${Object.entries(ROLES).map(([id, r]) => `<button class="role" data-s data-a="who" data-id="${id}"><span class="ri">${ic(r.ic, 28)}</span><b>${r.n}</b><span>${esc(r.d)}</span><em>${esc(S.staff.find(e => e.id === r.user).name)}</em></button>`).join('')}</div></div>`;
   $$('[data-s]', g).forEach((el, i) => el.style.setProperty('--i', i));
 }
 function pinScreen(id, anim = true) {
@@ -394,6 +395,6 @@ let started = false;
 const begin = () => { if (authed) enterApp(false); else if (S.role && ROLES[S.role]) pinScreen(S.role); else gate(); };
 const start = () => { if (started) return; started = true; sp.classList.add('out'); setTimeout(() => sp.remove(), 750); begin(); };
 if (K.QS.has('nosplash')) { sp.remove(); started = true; begin(); }
-else { sp.addEventListener('click', start); setTimeout(start, 3100); }
+else { sp.addEventListener('click', start); setTimeout(start, 4300); }
 K.render = render; K.go = go; K.A = A; K.toast = toast; K.openSheet = openSheet; K.parseVoice = parseVoice; K.push = push; K.poll = poll;
 })();
