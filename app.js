@@ -157,7 +157,7 @@ const sRec = () => {
   const r = S.recipes.find(x => x.id === ui.rid), f = rFC(r), c = rCost(r), t = fcTone(f), po = rPortions(r), hint = Math.ceil(c / (S.targetFC / 100) / 10) * 10, $m = $money();
   return { title: esc(r.name), sub: `Рецептура · ${r.ing.length} ингредиентов`,
     body: `${$m ? kv([['Цена блюда', rub(r.price)], ['Продукты', rub(c)], ['Доля продуктов в цене', `<span style="color:var(--${t === 'ok' ? 'ok' : t === 'wn' ? 'wn' : 'bd'})">${n1(f, 1)}%</span> <small class="mu">норма до ${S.targetFC}%</small>`], ['Заработок с порции', rub(r.price - c)]]) : ''}
-    ${$m ? `<div class="bar-row" style="margin:0 0 6px"><b>Цена в меню</b><span class="sp"></span><div class="step"><button data-a="rp" data-d="-10">${ic('minus', 18)}</button><b>${grp(r.price)}${NB}₽</b><button data-a="rp" data-d="10">${ic('plus', 18)}</button></div>${f > S.targetFC ? `<button class="btn sm" data-a="rpt" data-v="${hint}">Под норму: ${hint}${NB}₽</button>` : ''}</div>` : ''}
+    ${$m ? `<div class="bar-row" style="margin:0 0 6px"><b>Цена в меню</b><span class="sp"></span><div class="step"><button data-a="rp" data-d="-10">${ic('minus', 18)}</button><b>${grp(r.price)}${NB}₸</b><button data-a="rp" data-d="10">${ic('plus', 18)}</button></div>${f > S.targetFC ? `<button class="btn sm" data-a="rpt" data-v="${hint}">Под норму: ${hint}${NB}₸</button>` : ''}</div>` : ''}
     <div class="sec">Состав на порцию</div><div class="list">${r.ing.map(i => { const p = prod(i.pid), ci = p.price * i.q; return `<div class="li" style="min-height:58px"><span class="tx"><b>${esc(p.name)}</b><small>${n1(i.q * (p.unit === 'шт' ? 1 : 1000), p.unit === 'шт' ? 2 : 0)} ${p.unit === 'шт' ? 'шт' : p.unit === 'кг' ? 'г' : 'мл'} · на складе ${n1(p.stock)} ${p.unit}</small></span><span class="end">${$m ? `<div style="width:90px">${K.bar(ci / c)}</div><b style="min-width:64px;text-align:right">${rub(ci)}</b>` : ''}</span></div>`; }).join('')}</div>
     <div class="bar-row" style="margin:14px 0 0">${chip(po === 0 ? 'bd' : po < 8 ? 'wn' : 'ok', 'Хватит на ' + po + NB + pl(po, ['порцию', 'порции', 'порций']))}</div>`,
     foot: `<button class="btn" data-a="close">Закрыть</button><button class="btn pri ${po ? '' : 'off'}" data-a="cook">${ic('flame', 20)}Приготовили порцию</button>` };
@@ -189,11 +189,11 @@ const sVisit = () => { const v = vend(ui.vid), s = ui.vs; return { title: 'По�
   foot: `<button class="btn" data-a="close">Отмена</button><button class="btn ok ${s.note ? '' : 'off'}" data-a="visitOk">Сохранить</button>` }; };
 const sNewProd = () => { const f = ui.form, cats = [...new Set(S.products.map(p => p.cat))]; return { title: 'Новый продукт', sub: 'Добавится на склад',
   body: `${fld('name', 'Название', 'Например, Сёмга')}<div class="sec" style="margin-top:0">Категория</div>${pick('cat', cats.map(c => [c, c]), f.cat || cats[0])}<div class="sec">Единица</div>${pick('unit', ['кг', 'л', 'шт', 'уп'].map(c => [c, c]), f.unit || 'кг')}
-  <div class="fr" style="margin-top:14px">${fld('stock', 'Сколько есть', '0', 'decimal')}${fld('min', 'Минимум (ниже — заказать)', '0', 'decimal')}</div>${fld('price', 'Цена за единицу, ₽', '0', 'decimal')}<div class="sec" style="margin-top:0">Поставщик</div>${pick('sup', S.vendors.filter(v => v.kind === 'supplier').map(v => [v.id, v.name]), f.sup || 's1')}`,
+  <div class="fr" style="margin-top:14px">${fld('stock', 'Сколько есть', '0', 'decimal')}${fld('min', 'Минимум (ниже — заказать)', '0', 'decimal')}</div>${fld('price', 'Цена за единицу, ₸', '0', 'decimal')}<div class="sec" style="margin-top:0">Поставщик</div>${pick('sup', S.vendors.filter(v => v.kind === 'supplier').map(v => [v.id, v.name]), f.sup || 's1')}`,
   foot: `<button class="btn" data-a="close">Отмена</button><button class="btn pri" data-a="saveProd">Добавить</button>` }; };
 const POS = [['Повар горячего цеха', 'kitchen'], ['Повар холодного цеха', 'kitchen'], ['Повар-заготовщик', 'kitchen'], ['Кондитер', 'kitchen'], ['Мойщик посуды', 'kitchen'], ['Официант', 'hall'], ['Бариста', 'hall']];
 const sNewEmp = () => ({ title: 'Новый сотрудник', sub: 'Попадёт в команду и график. PIN для входа: 1111',
-  body: `${fld('name', 'Имя и фамилия', 'Например, Иван Петров')}<div class="sec" style="margin-top:0">Должность</div>${pick('pos', POS.map(p => [p[0], p[0]]), ui.form.pos || POS[0][0])}<div class="fr" style="margin-top:14px">${fld('phone', 'Телефон', '+7 ')}${fld('rate', 'Ставка, ₽/ч', '350', 'numeric')}</div>`,
+  body: `${fld('name', 'Имя и фамилия', 'Например, Иван Петров')}<div class="sec" style="margin-top:0">Должность</div>${pick('pos', POS.map(p => [p[0], p[0]]), ui.form.pos || POS[0][0])}<div class="fr" style="margin-top:14px">${fld('phone', 'Телефон', '+7 ')}${fld('rate', 'Ставка, ₸/ч', '350', 'numeric')}</div>`,
   foot: `<button class="btn" data-a="close">Отмена</button><button class="btn pri" data-a="saveEmp">Добавить</button>` });
 const sNewVen = () => { const f = ui.form, con = (f.kind || 'contractor') === 'contractor'; return { title: 'Новый контрагент', sub: 'Подрядчик или поставщик',
   body: `${pick('kind', [['contractor', 'Подрядчик (услуги)'], ['supplier', 'Поставщик продуктов']], f.kind || 'contractor')}<div style="height:14px"></div>${fld('name', 'Название', 'ООО «…»')}${con ? `<div class="sec" style="margin-top:0">Что делают</div>${pick('type', Object.entries(TYPE).map(([k, v]) => [k, v[1]]), f.type || 'clean')}<div class="sec">Как часто приезжают</div>${pick('freq', [[1, 'Каждый день'], [7, 'Раз в неделю'], [30, 'Раз в месяц'], [90, 'Раз в квартал'], [180, 'Раз в полгода']], f.freq || 30)}` : ''}<div class="fr" style="margin-top:14px">${fld('contact', 'Контактное лицо')}${fld('phone', 'Телефон', '+7 ')}</div>`,
@@ -213,12 +213,31 @@ const sPinChange = () => { const p = ui.pin; return { title: 'Новый PIN', s
 const sJoin = () => ({ title: 'Подключиться к данным', sub: 'Данные на этом планшете будут заменены общими',
   body: `${fld('code', 'Код заведения (8 символов)', 'AB12CD34')}`, foot: `<button class="btn" data-a="close">Отмена</button><button class="btn pri" data-a="syncJoinOk">Подключить</button>` });
 const ONB = {
+  acc: [['doc', 'Документы приходят сами', 'Когда на кухне принимают товар или сдают отчёт по списанию, здесь появляется готовый документ. Перепечатывать ничего не нужно.'], ['inbox', 'Скачайте файл — загрузите в 1С', 'Кнопка «Скачать для 1С» даёт файл CSV: поступления и списания с количеством, ценой и суммой.'], ['check', 'Отметьте «Внесено в 1С»', 'Документ уйдёт из очереди, и все видят, что он обработан.']],
   owner: [['chart', 'Всё главное — на первом экране', 'Слева — что делать прямо сейчас, справа — кто на смене. Цифры сверху показывают деньги.'], ['check', 'У каждого дела есть кнопка', 'Нажали «Списать» или «Согласовать» прямо из списка — заходить в разделы не нужно.'], ['lock', 'Ошиблись? Есть «Отменить»', 'После действия внизу появляется кнопка «Отменить» на 8 секунд.']],
   manager: [['chart', 'Что требует решения — сразу видно', 'Красное — срочно, жёлтое — скоро. У каждого дела кнопка действия.'], ['users', 'Команда и график', 'Нажмите на клетку в графике, чтобы сменить смену. Красный день — мало поваров.'], ['lock', 'Ошиблись? Есть «Отменить»', 'После действия внизу появляется кнопка «Отменить» на 8 секунд.']],
   admin: [['check', 'Дела на сегодня — на главной', 'Заказы, подрядчики, медкнижки. Рядом с каждым делом кнопка.'], ['truck', 'Подрядчики — в «Проверках»', 'Отмечайте «Приезжали» — следующий визит посчитается сам.'], ['lock', 'Ошиблись? Есть «Отменить»', 'После действия внизу появляется кнопка «Отменить» на 8 секунд.']],
   chef: [['clock', 'Сначала то, что скорее испортится', 'На главной видно, что пора списать или пустить в работу.'], ['cart', 'Закупки — почти сами', 'Что заканчивается, уже подобрано. Проверьте количество и отправьте.'], ['lock', 'Ошиблись? Есть «Отменить»', 'После действия внизу появляется кнопка «Отменить» на 8 секунд.']],
   sous: [['check', 'Дела смены — на главной', 'Температуры, приёмка, задачи открытия и закрытия. Всё с кнопками.'], ['inbox', 'Приёмка товара', 'Нажмите «Принять товар», поправьте количество, добавьте фото накладной.'], ['lock', 'Ошиблись? Есть «Отменить»', 'После действия внизу появляется кнопка «Отменить» на 8 секунд.']],
   cook: [['trash', 'Всё в четырёх кнопках', 'Списать, записать температуру, задачи смены и что использовать первым. Больше ничего не нужно.'], ['mic', 'Можно говорить', 'В «Списать продукт» нажмите «Голосом» и скажите: «списать два килограмма свинины».'], ['lock', 'Ошиблись? Нажмите «Отменить»', 'После списания внизу на 8 секунд появляется кнопка «Отменить».']],
+};
+const sReport = () => {
+  const ms = K.repOps(), it = K.aggOps(ms), tot = it.reduce((s, i) => s + i.q * i.price, 0);
+  return { title: 'Отчёт по продуктам', sub: 'Что списали и взяли в работу с прошлого отчёта',
+    body: `<div class="mu" style="font-size:14px;margin-bottom:10px">Бухгалтер внесёт это в 1С по вашему отчёту — второй раз ничего писать не нужно.</div>
+    <div class="list">${it.map(i => `<div class="li" style="min-height:56px"><span class="tx"><b>${esc(i.name)}</b><small>${esc(i.reason)}</small></span><span class="end"><b>${n1(i.q)} ${i.unit}</b>${$money() ? `<span class="mu">${rub(i.q * i.price)}</span>` : ''}</span></div>`).join('') || `<div class="empty">${ic('check', 36)}<div>Новых операций нет — сдавать нечего</div></div>`}</div>
+    ${it.length && $money() ? `<div class="bar-row" style="margin:12px 0 0"><span class="sp"></span><div style="text-align:right"><small class="mu">Итого</small><div style="font-size:24px;font-weight:800">${rub(tot)}</div></div></div>` : ''}`,
+    foot: `<button class="btn" data-a="close">Позже</button><button class="btn pri ${it.length ? '' : 'off'}" data-a="repSend">${ic('send', 20)}Сдать бухгалтеру</button>` };
+};
+const sDoc = () => {
+  const d = S.docs.find(x => x.id === ui.docId), T = K.DT[d.type], o = d.ord ? S.orders.find(x => x.id === d.ord) : null, sum = K.docSum(d), canDone = R().docDone && d.st === 'new';
+  return { title: `${T[2]} ${d.num}`, sub: `${dm(d.date)} · ${d.type === 'in' ? esc(vend(d.sup)?.name || '') : 'отчёт смены'}`,
+    body: `${kv([[d.type === 'in' ? 'Принял' : 'Сдал', esc(emp(d.by)?.name || '')], ['Сумма', rub(sum)], ['Позиций', String(d.items.length)], ['Статус', d.st === 'done' ? 'внесён в 1С · ' + esc(emp(d.doneBy)?.name.split(' ')[0] || '') : 'ждёт внесения']])}
+    ${d.diff ? `<div class="card" style="background:var(--wnb);margin-bottom:12px;padding:14px">${ic('alert', 18)} Принято не столько, сколько заказали: ${d.diff} ${pl(d.diff, ['позиция', 'позиции', 'позиций'])}. Сверьте с накладной.</div>` : ''}
+    ${d.note ? `<div class="mu" style="margin-bottom:8px">${esc(d.note)}</div>` : ''}
+    <div class="list">${d.items.map(i => `<div class="li" style="min-height:58px"><span class="tx"><b>${esc(i.name)}</b><small>${n1(i.q)} ${i.unit} × ${rub(i.price)}${i.ordered != null && i.ordered !== i.q ? ' · заказали ' + n1(i.ordered) : ''}${i.reason ? ' · ' + esc(i.reason) : ''}</small></span><span class="end"><b>${rub(i.q * i.price)}</b></span></div>`).join('')}</div>
+    ${o && o.ph ? `<div class="sec">Фото накладной</div><img class="thumb big" src="${o.ph}" alt="фото">` : ''}`,
+    foot: `<button class="btn" data-a="docCsv" data-id="${d.id}">${ic('inbox', 20)}Скачать для 1С</button>${canDone ? `<button class="btn ok" data-a="docDone" data-id="${d.id}">${ic('check', 20)}Внесено в 1С</button>` : ''}` };
 };
 const sOnb = () => { const o = ONB[ui.ob.role], i = ui.ob.i, [icn, t, d] = o[i]; return { title: 'Как тут всё устроено', sub: `${i + 1} из ${o.length}`,
   body: `<div class="onb"><span class="ico ac" style="width:84px;height:84px;border-radius:26px">${ic(icn, 42)}</span><h3>${t}</h3><p>${d}</p><div class="dots">${o.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div></div>`,
@@ -285,6 +304,7 @@ async function poll() {
 function syncStart() { clearInterval(pollT); if (S.sync) { pollT = setInterval(poll, 5000); poll(); } }
 
 /* ───── действия ───── */
+function download(name, text) { const b = new Blob([text], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
 const draftSet = (pid, q) => { ui.draft[pid] = Math.max(0, Math.round(q * 100) / 100); };
 const A = {
   go: el => go(el.dataset.r, el.dataset.tab),
@@ -319,6 +339,7 @@ const A = {
     commit(type === 'in' ? `Принято ${n1(q)} ${p.unit} · ${esc(p.name)}` : type === 'inv' ? 'Остаток обновлён' : type === 'out' ? `В работу: ${n1(q)} ${p.unit} · ${esc(p.name)}` : `Списано ${n1(q)} ${p.unit} · ${esc(p.name)}`, () => {
       if (type === 'in') { if (p.stock <= 0) p.exp = day(p.sh); p.stock += q; } else if (type === 'inv') p.stock = q; else p.stock = Math.max(0, p.stock - q);
       const m = { id: 'm' + (++S.seq), ts: Date.now(), type, pid, qty: q, who: me().id, reason: type === 'in' ? 'Приёмка' : type === 'inv' ? 'Инвентаризация' : type === 'out' ? 'Приготовлено' : reason }; if (ph) m.ph = ph; S.mv.unshift(m); prunePhotos(25);
+      if (type === 'in') K.addDoc({ type: 'in', sup: p.sup, by: me().id, note: 'Приход без заказа', items: [{ pid, name: p.name, unit: p.unit, q, price: p.price }] });
     });
   },
   temp: el => { ui.tid = el.dataset.id; ui.np = { val: '', neg: S.temps.find(t => t.id === ui.tid).hi < 0, act: '', photo: null }; openSheet(sTemp); },
@@ -338,9 +359,16 @@ const A = {
     commit('Товар принят на склад', () => {
       o.items.forEach(i => { const got = ui.rcv[i.pid] ?? i.q, p = prod(i.pid); i.got = got; if (got !== i.q) diff++; if (got > 0) { if (p.stock <= 0) p.exp = day(p.sh); p.stock += got; S.mv.unshift({ id: 'm' + (++S.seq), ts: Date.now(), type: 'in', pid: p.id, qty: got, who: me().id, reason: 'Приёмка' }); } });
       o.st = 'received'; o.rcv = day(0); if (ui.rcvPhoto) o.ph = ui.rcvPhoto; prunePhotos(25);
+      K.addDoc({ type: 'in', sup: o.sup, by: me().id, ord: o.id, diff, items: o.items.filter(i => i.got > 0).map(i => ({ pid: i.pid, name: prod(i.pid).name, unit: prod(i.pid).unit, q: i.got, ordered: i.q, price: i.price })) });
     });
     if (diff) toast(`Принято с расхождением: ${diff} ${pl(diff, ['позиция', 'позиции', 'позиций'])}`, '', undoSnap);
   },
+  doc: el => { ui.docId = el.dataset.id; openSheet(sDoc); },
+  docCsv: el => { const d = S.docs.find(x => x.id === el.dataset.id); download(d.num + '.csv', K.docsCsv([d])); toast('Файл скачан — загрузите его в 1С'); },
+  docCsvAll: () => { const ds = S.docs.filter(d => d.st === 'new'); if (!ds.length) return; download('dokumenty-dlya-1s-' + day(0) + '.csv', K.docsCsv(ds)); toast('Файл скачан: ' + ds.length + ' ' + pl(ds.length, ['документ', 'документа', 'документов'])); },
+  docDone: el => { const d = S.docs.find(x => x.id === el.dataset.id); commit('Отмечено: внесено в 1С', () => { d.st = 'done'; d.doneBy = me().id; d.doneAt = Date.now(); }); },
+  repOpen: () => openSheet(sReport),
+  repSend: () => { const ms = K.repOps(); if (!ms.length) return; commit('Отчёт сдан бухгалтеру', () => { K.addDoc({ type: 'out', by: me().id, items: K.aggOps(ms) }); S.lastRep = Date.now(); }); },
   rec: el => { ui.rid = el.dataset.id; openSheet(sRec); },
   rp: el => { const r = S.recipes.find(x => x.id === ui.rid); r.price = Math.max(10, r.price + +el.dataset.d); refresh(); },
   rpt: el => { S.recipes.find(x => x.id === ui.rid).price = +el.dataset.v; refresh(); toast('Цена обновлена'); },

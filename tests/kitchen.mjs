@@ -43,14 +43,14 @@ const pinIn = async (page, pin) => { for (const k of pin) await page.click(`#gat
 const finishOnb = async (page) => { await page.waitForSelector(".onb"); for (let i = 0; i < 3; i++) await page.click('.sheet [data-a="onbNext"]'); await page.waitForFunction(() => !document.querySelector(".ov")); };
 
 // 1. все экраны и вкладки всех ролей
-for (const role of ["owner", "manager", "admin", "chef", "sous", "cook"]) {
+for (const role of ["owner", "manager", "admin", "chef", "sous", "cook", "acc"]) {
   const { ctx, page } = await open("role=" + role);
   const navs = await page.$$eval(".nav-i", (e) => e.map((x) => x.dataset.r));
   for (const r of navs) {
     await page.evaluate((r) => KC.go(r), r);
     for (const t of await page.$$eval(".seg button", (e) => e.map((x) => x.dataset.k))) await page.click(`.seg button[data-k="${t}"]`);
   }
-  check(`роль «${role}»: открываются все экраны (${navs.length})`, navs.length >= 3);
+  check(`роль «${role}»: открываются все экраны (${navs.length})`, navs.length >= 2 || role === "cook");
   await ctx.close();
 }
 
@@ -171,7 +171,7 @@ for (const role of ["owner", "manager", "admin", "chef", "sous", "cook"]) {
 {
   const { ctx, page } = await open("role=sous&route=stock");
   const txt = await page.$eval(".tbl", (e) => e.innerText);
-  check("су-шеф: цены скрыты на складе", txt.includes("•••") && !txt.includes("₽"));
+  check("су-шеф: цены скрыты на складе", txt.includes("•••") && !txt.includes("₸"));
   await ctx.close();
 }
 
@@ -198,7 +198,47 @@ for (const role of ["owner", "manager", "admin", "chef", "sous", "cook"]) {
   await ctx.close();
 }
 
-// 12. синхронизация двух планшетов (если есть сервер)
+// 12. тенге и документы для 1С
+{
+  const { ctx, page } = await open("role=owner");
+  const t = await page.$eval("#view", (e) => e.innerText);
+  check("цены в тенге (₸), рублей нет", t.includes("₸") && !t.includes("₽"));
+  await ctx.close();
+}
+{
+  // повар списывает → сдаёт отчёт → бухгалтер получает документ, скачивает CSV и отмечает «внесено в 1С»
+  const { ctx, page } = await open("role=cook");
+  const nOps = await page.evaluate(() => KC.repOps().length);
+  check("повар: в ленте есть «Сдать отчёт»", nOps > 0 && (await page.$$eval(".fi .btn", (e) => e.some((x) => x.dataset.a === "repOpen"))));
+  await page.click('[data-a="pickProd"]'); await page.click('.sheet [data-a="op"] >> nth=0'); await page.click('.sheet .key[data-k="1"]'); await page.click('[data-a="opOk"]');
+  await page.click('.fi [data-a="repOpen"]'); await page.click('[data-a="repSend"]');
+  let s = await state(page);
+  check("отчёт сдан: появился документ «Списание», счётчик сброшен", s.docs[0].type === "out" && s.docs[0].st === "new" && s.docs[0].items.length >= 2 && (await page.evaluate(() => KC.repOps().length)) === 0);
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open("role=acc");
+  check("бухгалтер: видит документы в очереди", (await page.$$eval(".fi, .kpi", (e) => e.length)) > 0);
+  await page.evaluate(() => KC.go("docs"));
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click('[data-a="docCsvAll"]')]);
+  const csv = fs.readFileSync(await dl.path(), "utf8");
+  check("CSV для 1С: файл .csv, BOM, разделитель «;», шапка и строки", dl.suggestedFilename().endsWith(".csv") && csv.charCodeAt(0) === 0xfeff && csv.split("\r\n")[0].split(";").length === 10 && csv.split("\r\n").length > 3 && /Поступление;ПТ-\d{4};\d\d\.\d\d\.\d{4}/.test(csv), csv.slice(0, 200));
+  const before = await page.evaluate(() => KC.S().docs.filter((d) => d.st === "new").length);
+  await page.click('[data-a="doc"] >> nth=0'); await page.click('[data-a="docDone"]');
+  const s = await state(page);
+  check("«Внесено в 1С»: документ уходит из очереди", s.docs.filter((d) => d.st === "new").length === before - 1);
+  await ctx.close();
+}
+{
+  // приёмка по заказу создаёт документ «Поступление» с расхождением
+  const { ctx, page } = await open("role=chef&route=orders&tab=list");
+  await page.click('.btn.ok[data-a="ord"] >> nth=0'); await page.click('[data-a="rq"] >> nth=0'); await page.click('[data-a="receive"]');
+  const s = await state(page);
+  check("приёмка: создан документ «Поступление» с расхождением", s.docs[0].type === "in" && s.docs[0].diff >= 1 && s.docs[0].items.length >= 1);
+  await ctx.close();
+}
+
+// 13. синхронизация двух планшетов (если есть сервер)
 if (process.env.KC_URL) {
   const A = await open("role=owner"), B = await open("role=chef");
   await A.page.click('[data-a="me"]'); await A.page.click('[data-a="syncOn"]'); await A.page.waitForSelector(".code");

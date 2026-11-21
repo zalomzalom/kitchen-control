@@ -17,27 +17,56 @@ const day = n => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.ge
 const addDays = (iso, n) => { const x = new Date(iso + 'T12:00:00'); x.setDate(x.getDate() + n); return isoD(x); };
 const dd = iso => Math.round((new Date(iso + 'T12:00:00') - new Date(day(0) + 'T12:00:00')) / 864e5);
 S = load() || window.KC_SEED();
-const rollover = () => S.checklists.forEach(c => { if (c.date !== day(0)) { c.done = []; c.date = day(0); c.by = ''; c.at = ''; } });
-if (S.venue === 'Ресторан «Север»') S.venue = 'Rifugio del Monte';
+const dmy = iso => iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4);
+const dnum = t => { S.docSeq = (S.docSeq || 0) + 1; return (t === 'in' ? 'ПТ-' : 'СП-') + String(S.docSeq).padStart(4, '0'); };
+const repOps = () => S.mv.filter(m => (m.type === 'waste' || m.type === 'out') && m.ts > (S.lastRep || 0));
+const aggOps = ms => { const o = {}; ms.forEach(m => { const r = m.type === 'out' ? 'В работу' : m.reason, k = m.pid + '|' + r, p = S.products.find(x => x.id === m.pid) || { name: '—', unit: '', price: 0 }; (o[k] = o[k] || { pid: m.pid, name: p.name, unit: p.unit, q: 0, reason: r, price: p.price }).q += m.qty; }); return Object.values(o).map(i => ({ ...i, q: Math.round(i.q * 1000) / 1000 })); };
+function addDoc(d) { d.id = 'd' + (++S.seq); d.num = dnum(d.type); d.ts = d.ts || Date.now(); d.date = d.date || isoD(new Date(d.ts)); d.st = d.st || 'new'; S.docs.unshift(d); return d; }
+const docSum = d => d.items.reduce((s, i) => s + i.q * i.price, 0);
+const csvEsc = v => { v = String(v ?? ''); return /[;"\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+const cnum = v => String(Math.round(v * 1000) / 1000).replace('.', ',');
+function docsCsv(ds) {
+  const rows = [['Тип документа', 'Номер', 'Дата', 'Контрагент / основание', 'Код 1С', 'Номенклатура', 'Ед.', 'Количество', 'Цена, ₸', 'Сумма, ₸']];
+  ds.forEach(d => d.items.forEach(i => rows.push([d.type === 'in' ? 'Поступление' : 'Списание', d.num, dmy(d.date), d.type === 'in' ? (S.vendors.find(v => v.id === d.sup)?.name || '') : i.reason, (S.products.find(p => p.id === i.pid) || {}).code || '', i.name, i.unit, cnum(i.q), cnum(i.price), cnum(i.q * i.price)])));
+  return '\ufeff' + rows.map(r => r.map(csvEsc).join(';')).join('\r\n');
+}
+function migrate() {
+  if (!S.kzt) { // демо-цены были в рублях: пересчитываем в тенге (примерно ×5)
+    S.products.forEach(p => p.price = Math.round(p.price * 5)); S.recipes.forEach(r => r.price = Math.round(r.price * 5 / 10) * 10);
+    S.vendors.forEach(v => { if (v.minOrder != null) v.minOrder *= 5; if (v.debt != null) v.debt *= 5; }); S.staff.forEach(e => e.rate = Math.round(e.rate * 5));
+    S.orders.forEach(o => o.items.forEach(i => i.price = Math.round(i.price * 5))); S.hist.spend = S.hist.spend.map(x => Math.round(x * 5)); S.kzt = 1;
+  }
+  if (!S.staff.some(e => e.id === 'e14')) S.staff.push({ id: 'e14', name: 'Гульнара Сейтова', pos: 'Бухгалтер', grp: 'mgmt', med: null, phone: '+7 700 300-00-14', rate: 0, week: '-------'.split(''), hours: 0, on: false, since: '', pin: '1111' });
+  if (!S.docs) {
+    S.docs = []; S.docSeq = 0; const H = 3600e3;
+    S.orders.filter(o => o.st === 'received').sort((a, b) => a.d.localeCompare(b.d)).slice(-8).forEach(o => { const ts = Date.parse(o.d + 'T12:00:00'), old = dd(o.d) < -3; addDoc({ type: 'in', sup: o.sup, by: o.by, ord: o.id, ts, date: o.d, st: old ? 'done' : 'new', doneBy: old ? 'e14' : undefined, doneAt: old ? ts + H : undefined, diff: 0, items: o.items.map(i => { const p = S.products.find(x => x.id === i.pid) || { name: '—', unit: '' }; return { pid: i.pid, name: p.name, unit: p.unit, q: i.got ?? i.q, ordered: i.q, price: i.price }; }) }); });
+    const old = S.mv.filter(m => (m.type === 'waste' || m.type === 'out') && m.ts < Date.now() - 24 * H && m.ts > Date.now() - 96 * H);
+    if (old.length) addDoc({ type: 'out', by: 'e5', ts: Date.now() - 24 * H, st: 'done', doneBy: 'e14', doneAt: Date.now() - 20 * H, items: aggOps(old) });
+    S.lastRep = Date.now() - 24 * H;
+  }
+}
+const rollover = () => { migrate(); S.checklists.forEach(c => { if (c.date !== day(0)) { c.done = []; c.date = day(0); c.by = ''; c.at = ''; } }); };
 S.seen = S.seen || {}; S.staff.forEach(e => { if (!e.pin) e.pin = '1111'; }); rollover();
 
 /* ───── роли ───── */
-const FEED_ALL = ['temp', 'exp', 'list', 'recv', 'low', 'appr', 'med', 'ven'];
+const FEED_ALL = ['temp', 'exp', 'list', 'recv', 'low', 'appr', 'med', 'ven', 'doc'];
 const ROLES = {
-  owner:   { n: 'Руководитель', user: 'e1', ic: 'crown', d: 'Деньги, подрядчики и всё, что требует решения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: FEED_ALL,
-    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks'], kpis: ['fc', 'waste7', 'spend7'], blocks: [['g21', ['feed', 'shifts']], ['g1', ['trend']]] },
-  manager: { n: 'Управляющий', user: 'e2', ic: 'clip', d: 'Смены, закупки, проверки и отклонения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: FEED_ALL,
-    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks'], kpis: ['onShift', 'fc', 'waste7'], blocks: [['g21', ['feed', 'shifts']]] },
+  owner:   { n: 'Руководитель', user: 'e1', ic: 'crown', d: 'Деньги, подрядчики и всё, что требует решения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, docDone: 1, feed: FEED_ALL,
+    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks', 'docs'], kpis: ['fc', 'waste7', 'spend7'], blocks: [['g21', ['feed', 'shifts']], ['g1', ['trend']]] },
+  manager: { n: 'Управляющий', user: 'e2', ic: 'clip', d: 'Смены, закупки, проверки и отклонения', money: 1, approve: 1, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: [...FEED_ALL, 'rep'],
+    nav: ['home', 'money', 'stock', 'orders', 'team', 'checks', 'docs'], kpis: ['onShift', 'fc', 'waste7'], blocks: [['g21', ['feed', 'shifts']]] },
   admin:   { n: 'Менеджер', user: 'e3', ic: 'users', d: 'График команды, заявки, визиты подрядчиков', money: 1, approve: 0, staffEdit: 1, vendorEdit: 1, vendors: 1, feed: ['temp', 'list', 'recv', 'low', 'med', 'ven'],
     nav: ['home', 'orders', 'team', 'checks', 'stock'], kpis: ['onShift', 'orders', 'vendorsDue'], blocks: [['g21', ['feed', 'shifts']]] },
-  chef:    { n: 'Шеф-повар', user: 'e4', ic: 'chef', d: 'Склад, блюда и их себестоимость, списания', money: 1, approve: 1, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low', 'appr'],
+  chef:    { n: 'Шеф-повар', user: 'e4', ic: 'chef', d: 'Склад, блюда и их себестоимость, списания', money: 1, approve: 1, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low', 'appr', 'rep'],
     nav: ['home', 'stock', 'orders', 'dishes', 'checks'], kpis: ['low', 'expiring'], blocks: [['g21', ['feed', 'tempsMini']]] },
-  sous:    { n: 'Су-шеф', user: 'e5', ic: 'flame', d: 'Приёмка, сроки годности, температуры, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low'],
+  sous:    { n: 'Су-шеф', user: 'e5', ic: 'flame', d: 'Приёмка, сроки годности, температуры, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'recv', 'low', 'rep'],
     nav: ['home', 'stock', 'orders', 'checks'], kpis: [], blocks: [['g21', ['feed', 'tempsMini']]] },
-  cook:    { n: 'Повар', user: 'e6', ic: 'knife', d: 'Списать продукт, записать температуру, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list'], cook: 1, simple: 1,
+  cook:    { n: 'Повар', user: 'e6', ic: 'knife', d: 'Списать продукт, записать температуру, задачи смены', money: 0, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, feed: ['temp', 'exp', 'list', 'rep'], cook: 1, simple: 1,
     nav: ['home', 'stock', 'checks'], kpis: [], blocks: [] },
+  acc:     { n: 'Бухгалтер', user: 'e14', ic: 'doc', d: 'Поступления и списания для 1С — без перепечатывания', money: 1, approve: 0, staffEdit: 0, vendorEdit: 0, vendors: 0, docDone: 1, feed: ['doc'],
+    nav: ['home', 'docs'], kpis: ['docsNew', 'inWeek'], blocks: [['g1', ['feed']]] },
 };
-const NAV = { home: ['Главная', 'home'], money: ['Деньги', 'chart'], stock: ['Склад', 'box'], orders: ['Закупки', 'cart'], dishes: ['Блюда', 'chef'], team: ['Команда', 'users'], checks: ['Проверки', 'shield'] };
+const NAV = { docs: ['Документы', 'doc'], home: ['Главная', 'home'], money: ['Деньги', 'chart'], stock: ['Склад', 'box'], orders: ['Закупки', 'cart'], dishes: ['Блюда', 'chef'], team: ['Команда', 'users'], checks: ['Проверки', 'shield'] };
 const DEV = ['role', 'theme', 'sync', 'seen'];
 const R = () => ROLES[S.role] || ROLES.owner;
 const me = () => S.staff.find(e => e.id === R().user);
@@ -90,14 +119,14 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const NB = ' ';
 const grp = v => Math.round(v).toLocaleString('ru-RU').replace(/ /g, NB);
 const n1 = (v, d = 2) => { const r = Math.round(v * 10 ** d) / 10 ** d; return String(r).replace('.', ','); };
-const rub = v => $money() ? grp(v) + NB + '₽' : '•••';
+const rub = v => $money() ? grp(v) + NB + '₸' : '•••';
 const pl = (n, a) => { n = Math.abs(n); const m = n % 100, k = n % 10; return a[m > 10 && m < 20 ? 2 : k > 1 && k < 5 ? 1 : k === 1 ? 0 : 2]; };
 const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const dm = iso => { const d = new Date(iso + 'T12:00:00'); return d.getDate() + NB + MON[d.getMonth()]; };
 const rel = iso => { const d = dd(iso); return d === 0 ? 'сегодня' : d === 1 ? 'завтра' : d === -1 ? 'вчера' : d > 0 ? 'через ' + d + NB + pl(d, ['день', 'дня', 'дней']) : -d + NB + pl(d, ['день', 'дня', 'дней']) + ' назад'; };
 const agoTs = ts => { const m = Math.round((Date.now() - ts) / 6e4); return m < 2 ? 'только что' : m < 60 ? m + NB + 'мин назад' : m < 1440 ? Math.floor(m / 60) + NB + 'ч назад' : Math.floor(m / 1440) + NB + 'д назад'; };
 const hm = ts => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-const FM = { int: v => grp(v), dec1: v => n1(v, 1), rub: v => grp(v) + NB + '₽', pct: v => n1(v, 1) };
+const FM = { int: v => grp(v), dec1: v => n1(v, 1), rub: v => grp(v) + NB + '₸', pct: v => n1(v, 1) };
 const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const ini = n => n.split(' ').map(w => w[0]).slice(0, 2).join('');
 const avatar = (e, cls = '') => `<div class="avatar ${e.on ? 'on' : ''} ${cls}" style="--h:${hue(e.name)}">${ini(e.name)}</div>`;
@@ -148,6 +177,8 @@ function feed() {
   const k1 = S.checklists[0], k2 = S.checklists[1];
   if (k1.done.length < k1.items.length) add('list', { s: 1, tone: 'wn', ic: 'check', t: 'Открытие кухни: ' + k1.done.length + ' из ' + k1.items.length, d: 'Осталось ' + plN(k1.items.length - k1.done.length, ['пункт', 'пункта', 'пунктов']), btn: 'Продолжить', a: 'go', data: { r: 'checks', tab: 'lists' } });
   if (new Date().getHours() >= 19 && k2.done.length < k2.items.length) add('list', { s: 1, tone: 'wn', ic: 'moon', t: 'Закрытие кухни: ' + k2.done.length + ' из ' + k2.items.length, d: 'Не забудьте подписать', btn: 'Открыть', a: 'go', data: { r: 'checks', tab: 'lists' } });
+  const nrep = repOps().length; if (nrep) add('rep', { s: new Date().getHours() >= 20 ? 0 : 1, tone: 'wn', ic: 'doc', t: 'Сдайте отчёт по продуктам: ' + plN(nrep, ['операция', 'операции', 'операций']), d: 'Бухгалтер спишет по нему в 1С — перепечатывать не нужно', btn: 'Сдать отчёт', a: 'repOpen', data: {} });
+  const nd = S.docs.filter(d => d.st === 'new').length; if (nd) add('doc', { s: 1, tone: 'in', ic: 'doc', t: 'Документов для 1С: ' + nd, d: 'Поступления и списания ждут внесения', btn: 'Открыть', a: 'go', data: { r: 'docs' } });
   const e2 = expList(4).filter(p => dd(p.exp) > 1); if (e2.length) add('exp', { s: 2, tone: 'wn', ic: 'clock', t: 'Скоро срок: ' + plN(e2.length, ['продукт', 'продукта', 'продуктов']), d: e2.slice(0, 3).map(p => p.name).join(', '), btn: 'Что использовать', a: 'go', data: { r: 'stock', tab: 'exp' } });
   const lo = lowList(); if (lo.length) add('low', { s: 2, tone: 'wn', ic: 'box', t: 'Заканчивается: ' + plN(lo.length, ['продукт', 'продукта', 'продуктов']), d: lo.slice(0, 3).map(p => p.name).join(', ') + (lo.length > 3 ? '…' : ''), btn: 'Заказать', a: 'go', data: { r: 'orders' } });
   S.staff.filter(e => e.med !== null && dd(e.med) >= 0 && dd(e.med) <= 30).forEach(e => add('med', { s: 2, tone: 'wn', ic: 'doc', t: e.name + ': медкнижка кончается', d: 'Через ' + plN(dd(e.med), ['день', 'дня', 'дней']), btn: 'Открыть', a: 'emp', data: { id: e.id } }));
@@ -199,5 +230,5 @@ function donut(items, centerTop, centerSub) {
 }
 const legend = items => `<div class="lgd">${items.map((it, i) => `<div><i style="background:${PAL[i % PAL.length]}"></i>${esc(it.n)}<b>${it.t}</b></div>`).join('')}</div>`;
 
-window.KC = { rollover, DEV, tempDue, feed, S: () => S, set: s => { S = s; }, save, $, $$, QS, reduced, ROLES, NAV, R, me, $money, ic, IC, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, hm, FM, hue, ini, avatar, day, addDays, dd, isoD, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, dow, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, alerts, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, toneOf, pad };
+window.KC = { docsCsv, docSum, repOps, aggOps, addDoc, dmy, rollover, DEV, tempDue, feed, S: () => S, set: s => { S = s; }, save, $, $$, QS, reduced, ROLES, NAV, R, me, $money, ic, IC, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, hm, FM, hue, ini, avatar, day, addDays, dd, isoD, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, dow, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, alerts, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, toneOf, pad };
 })();

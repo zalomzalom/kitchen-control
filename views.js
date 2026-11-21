@@ -1,9 +1,9 @@
 /* Kitchen Control — экраны. Каждый экран возвращает HTML; интерактивность — через data-a (см. app.js). */
 (() => {
 const K = window.KC, S = K.S();
-const { ic, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, avatar, dd, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, feed, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, R, me, $money } = K;
+const { docSum, ic, esc, NB, grp, n1, rub, pl, dm, rel, agoTs, avatar, dd, prod, vend, emp, nextVisit, pStatus, lowList, expList, expChip, rCost, rFC, rPortions, menuFC, fcTone, wasteMv, mvCost, stockValue, oSum, inFlight, todayShift, tLast, tOk, clPct, medState, sugQty, stepOf, feed, chip, ring, bar, stars, count, spark, lineChart, barChart, donut, legend, PAL, R, me, $money } = K;
 
-const ui = K.ui = { route: 'home', tab: { stock: 'list', orders: 'rec', team: 'team', checks: 'temps', money: 'sum' }, q: '', cat: 'Все', f: 'all', draft: {}, allOrders: false, alerts: [] };
+const ui = K.ui = { route: 'home', tab: { stock: 'list', orders: 'rec', team: 'team', checks: 'temps', money: 'sum', docs: 'new' }, q: '', cat: 'Все', f: 'all', draft: {}, allOrders: false, alerts: [] };
 const TYPE = { clean: ['spark', 'Клининг'], vent: ['wind', 'Вентиляция'], pest: ['bug', 'Дезинсекция'], waste: ['trash', 'Отходы'], laundry: ['shirt', 'Прачечная'], tech: ['wrench', 'Техника'] };
 K.TYPE = TYPE;
 K.alias = (r, tab) => {
@@ -37,11 +37,13 @@ function kpiMap() {
   const goFc = R().nav.includes('money') ? 'money' : 'dishes';
   return {
     fc: { l: 'Себестоимость блюд', icon: 'chart', v: fc, f: 'pct', u: '%', s: `доля продуктов в цене · цель ${S.targetFC}%` + (over ? ` · выше цели: ${over}` : ''), tone: fcTone(fc), spark: S.hist.fc.concat(fc), go: goFc, tab: 'dishes' },
-    waste7: { l: 'Списано за 7 дней', icon: 'trash', v: w7s, f: 'rub', s: top ? `${w7.length} ${pl(w7.length, ['случай', 'случая', 'случаев'])} · чаще всего: ${top[0].toLowerCase()}` : 'ничего не списывали', tone: w7s > 7000 ? 'wn' : '', go: R().nav.includes('money') ? 'money' : 'stock' },
+    waste7: { l: 'Списано за 7 дней', icon: 'trash', v: w7s, f: 'rub', s: top ? `${w7.length} ${pl(w7.length, ['случай', 'случая', 'случаев'])} · чаще всего: ${top[0].toLowerCase()}` : 'ничего не списывали', tone: w7s > 35000 ? 'wn' : '', go: R().nav.includes('money') ? 'money' : 'stock' },
     spend7: { l: 'Закупки за 7 дней', icon: 'cart', v: sp7, f: 'rub', s: `${S.orders.filter(o => dd(o.d) >= -7).length} заказов поставщикам`, go: 'orders', tab: 'list' },
     stockValue: { l: 'Стоимость склада', icon: 'box', v: stockValue(), f: 'rub', s: `${S.products.length} позиций на остатках`, go: 'stock' },
     low: { l: 'Заканчивается', icon: 'box', v: lo.length, f: 'int', s: lo.length ? lo.slice(0, 2).map(p => p.name).join(', ') + '…' : 'всего хватает', tone: lo.length ? 'bd' : 'ok', go: 'orders' },
     expiring: { l: 'Скоро срок (3 дня)', icon: 'clock', v: ex.length, f: 'int', s: ex.length ? ex.slice(0, 2).map(p => p.name).join(', ') + '…' : 'просрочки нет', tone: ex.length ? 'wn' : 'ok', go: 'stock', tab: 'exp' },
+    docsNew: { l: 'Ждут внесения в 1С', icon: 'doc', v: S.docs.filter(d => d.st === 'new').length, f: 'int', s: `поступлений: ${S.docs.filter(d => d.st === 'new' && d.type === 'in').length} · списаний: ${S.docs.filter(d => d.st === 'new' && d.type === 'out').length}`, tone: S.docs.some(d => d.st === 'new') ? 'wn' : 'ok', go: 'docs' },
+    inWeek: { l: 'Поступило за 7 дней', icon: 'inbox', v: S.docs.filter(d => d.type === 'in' && dd(d.date) >= -7).reduce((s, d) => s + docSum(d), 0), f: 'rub', s: `${S.docs.filter(d => d.type === 'in' && dd(d.date) >= -7).length} накладных`, go: 'docs', tab: 'done' },
     onShift: { l: 'Сейчас на смене', icon: 'users', v: on, f: 'int', s: `из ${S.staff.filter(e => e.id !== 'e1').length} в штате`, go: 'team' },
     orders: { l: 'Заказы в пути', icon: 'send', v: fl.length, f: 'int', s: fl.length ? fl.map(o => vend(o.sup).name).slice(0, 2).join(', ') : 'нет активных', tone: fl.length ? '' : 'ok', go: 'orders', tab: 'list' },
     vendorsDue: { l: 'Визиты подрядчиков', icon: 'truck', v: due.length, f: 'int', s: due.length ? 'нужно внимание: ' + due.map(v => v.name).slice(0, 2).join(', ') : 'всё по графику', tone: due.some(v => dd(nextVisit(v)) < 0) ? 'bd' : due.length ? 'wn' : 'ok', go: 'checks', tab: 'con' },
@@ -73,7 +75,7 @@ const BLK = {
 /* главная повара: четыре крупные кнопки без меню */
 function vCook() {
   const u = me(), k1 = S.checklists[0], k2 = S.checklists[1], h = new Date().getHours(), cl = h >= 19 ? k2 : k1;
-  const due = K.tempDue(), bad = S.temps.filter(t => !tOk(t)), ex = expList(4), f = feed().filter(x => x.s === 0).slice(0, 2);
+  const due = K.tempDue(), bad = S.temps.filter(t => !tOk(t)), ex = expList(4), fa = feed(), f = [...fa.filter(x => x.s === 0).slice(0, 2), ...fa.filter(x => x.k === 'rep')];
   const tSub = bad.length ? `${bad.length} вне нормы — нужно записать` : due.length ? `пора: ${due.length} из ${S.temps.length}` : 'всё записано';
   return `<div class="hello" data-s><div><h1>Привет, ${esc(u.name.split(' ')[0])}</h1><p>${u.on ? 'Вы на смене с ' + u.since : 'Смена не начата'} · что делаем?</p></div></div>
   <div class="g g2 acts">
@@ -149,7 +151,7 @@ function vOrders() {
   if (!sups.length) return head + `<div class="card" data-s>${empty('Заказывать нечего — всего хватает. Когда продукт начнёт заканчиваться, он появится здесь сам.')}</div>`;
   return head + `<div class="g g2">${sups.map(sid => {
     const v = vend(sid), ls = by[sid], tot = ls.reduce((s, l) => s + l.q * l.p.price, 0), act = ls.filter(l => l.q > 0).length;
-    return `<div class="card" data-s><div class="card-h"><span class="ico ac">${ic('truck', 22)}</span><div><h3>${esc(v.name)}</h3><small>Привозят: ${esc(v.days)} · ${esc(v.terms)}</small></div><span class="sp"></span>${$money() && tot < v.minOrder ? chip('wn', 'от ' + grp(v.minOrder) + NB + '₽') : ''}</div>
+    return `<div class="card" data-s><div class="card-h"><span class="ico ac">${ic('truck', 22)}</span><div><h3>${esc(v.name)}</h3><small>Привозят: ${esc(v.days)} · ${esc(v.terms)}</small></div><span class="sp"></span>${$money() && tot < v.minOrder ? chip('wn', 'от ' + grp(v.minOrder) + NB + '₸') : ''}</div>
     <div class="list">${ls.map(l => `<div class="li" style="${l.q === 0 ? 'opacity:.45' : ''}"><span class="tx"><b>${esc(l.p.name)}</b><small>осталось ${n1(l.p.stock)} из ${n1(l.p.min)} ${l.p.unit} · ${rub(l.q * l.p.price)}</small></span><span class="end">${stepper(l.p.id, l.q, l.p.unit, stepOf(l.p))}</span></div>`).join('')}</div>
     <div class="bar-row" style="margin:14px 0 0"><div><small class="mu">Итого</small><div style="font-size:24px;font-weight:800">${rub(tot)}</div></div><span class="sp"></span><button class="btn pri ${act ? '' : 'off'}" data-a="sendOrder" data-s="${sid}">${ic('send', 20)}${R().approve ? 'Отправить заказ' : 'Отправить шефу'}</button></div></div>`;
   }).join('')}</div>`;
@@ -161,7 +163,7 @@ function vRecipes() {
   const hint = worst && rFC(worst) > S.targetFC ? Math.ceil(rCost(worst) / (S.targetFC / 100) / 10) * 10 : 0;
   return `<div class="g g3"><div class="kpi t-${fcTone(fc)}" data-s><div class="l">${ic('chart', 18)}Себестоимость блюд</div><div class="v">${$money() ? count(fc, 'pct', '%') : '•••'}</div><div class="s">доля продуктов в цене · цель ${S.targetFC}%</div></div>
   <div class="kpi" data-s><div class="l">${ic('chef', 18)}Блюд в меню</div><div class="v">${count(rs.length, 'int')}</div><div class="s">${bad.length} дороже нормы по продуктам</div></div>
-  <div class="kpi" data-s><div class="l">${ic('spark', 18)}Подсказка</div><div class="s" style="margin:6px 0 0;color:var(--tx);font-size:14px">${$money() && hint ? `«${esc(worst.name)}» — продукты стоят ${n1(rFC(worst), 0)}% цены. Цена ${hint}${NB}₽ вернёт блюдо в норму.` : 'Все блюда в пределах нормы.'}</div></div></div>
+  <div class="kpi" data-s><div class="l">${ic('spark', 18)}Подсказка</div><div class="s" style="margin:6px 0 0;color:var(--tx);font-size:14px">${$money() && hint ? `«${esc(worst.name)}» — продукты стоят ${n1(rFC(worst), 0)}% цены. Цена ${hint}${NB}₸ вернёт блюдо в норму.` : 'Все блюда в пределах нормы.'}</div></div></div>
   <div class="g g3 mt">${rs.map(r => { const f = rFC(r), po = rPortions(r), t = fcTone(f); return `<button class="tile" data-s data-a="rec" data-id="${r.id}"><div class="hd"><div class="tx"><b>${esc(r.name)}</b><small>${r.ing.length} ингр. · ${rub(r.price)}</small></div>${$money() ? ring(Math.min(1, f / 60), n1(f, 0) + '%', t, 62) : ''}</div>
     <div class="ft">${$money() ? chip('', 'продукты ' + rub(rCost(r))) + chip(t, 'заработок ' + rub(r.price - rCost(r))) : ''}${chip(po === 0 ? 'bd' : po < 8 ? 'wn' : 'ok', 'хватит на ' + po + NB + pl(po, ['порцию', 'порции', 'порций']))}</div></button>`; }).join('')}</div>`;
 }
@@ -193,7 +195,7 @@ function venCon() {
 function vChecks() {
   const r = R(), tab = ui.tab.checks, due = K.tempDue().length, nb = S.temps.filter(t => !tOk(t)).length;
   const tabs = [['temps', 'Температуры' + (nb || due ? ` · ${nb + due}` : '')], ['lists', 'Задачи смены']]; if (r.vendors) tabs.push(['con', 'Подрядчики']);
-  const head = `<div class="bar-row">${seg('checks', tabs)}${r.vendorEdit && tab === 'con' ? `<span class="sp"></span><button class="btn pri" data-s data-a="newVen" data-k="contractor">${ic('plus', 20)}Добавить</button>` : ''}</div>`;
+  const head = `<div class="bar-row">${seg('checks', tabs)}${r.vendorEdit && tab === 'con' ? `<span class="sp"></span><button class="btn pri" data-s data-a="newVen" data-k="contractor">${ic('plus', 20)}Добавить</button>` : ''}${tab === 'lists' && r.feed.includes('rep') ? `<span class="sp"></span><button class="btn pri" data-s data-a="repOpen">${ic('doc', 20)}Сдать отчёт по продуктам</button>` : ''}</div>`;
   if (tab === 'con' && r.vendors) return head + venCon();
   if (tab === 'lists') {
     return head + `<div class="g g3" style="align-items:start">${S.checklists.map(c => `<div class="card" data-s><div class="card-h">${ring(clPct(c), Math.round(clPct(c) * 100) + '%', clPct(c) === 1 ? 'ok' : '', 62)}<div><h3>${c.name}</h3><small>${c.by ? 'подписал ' + esc(c.by) + ' в ' + c.at : c.done.length + ' из ' + c.items.length}</small></div></div>
@@ -217,8 +219,8 @@ function vReports() {
   const cats = Object.entries(cat).sort((a, b) => b[1] - a[1]).map(([n, v]) => ({ n, v, t: Math.round(v / 1000) + NB + 'тыс.' })), ctot = cats.reduce((s, c) => s + c.v, 0);
   const k = kpiMap(), worst = [...S.recipes].sort((a, b) => rFC(b) - rFC(a)).slice(0, 3);
   return `<div class="g g4">${['fc', 'waste7', 'spend7', 'stockValue'].map(id => kpiCard(k[id])).join('')}</div>
-  <div class="g g12 mt"><div class="card" data-s><div class="card-h"><h3>Закупки по неделям</h3><span class="sp"></span><small>тыс. ₽</small></div>${barChart(S.hist.spend, S.hist.wk)}</div>
-  <div class="card" data-s><div class="card-h"><h3>Куда уходят деньги · 4 недели</h3></div><div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">${donut(cats, Math.round(ctot / 1000) + NB + 'тыс.', 'закупки, ₽')}${legend(cats)}</div></div></div>
+  <div class="g g12 mt"><div class="card" data-s><div class="card-h"><h3>Закупки по неделям</h3><span class="sp"></span><small>тыс. ₸</small></div>${barChart(S.hist.spend, S.hist.wk)}</div>
+  <div class="card" data-s><div class="card-h"><h3>Куда уходят деньги · 4 недели</h3></div><div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">${donut(cats, Math.round(ctot / 1000) + NB + 'тыс.', 'закупки, ₸')}${legend(cats)}</div></div></div>
   <div class="g g2 mt"><div class="card" data-s><div class="card-h"><h3>Почему списываем · 14 дней</h3><span class="sp"></span>${chip('wn', rub(wsum))}</div><div class="list">${reasons.map(([n, v]) => `<div class="li" style="display:block;min-height:0;padding:10px 4px"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><b style="font-size:14px">${esc(n)}</b><span class="mu">${rub(v)}</span></div>${bar(v / rmax, 'wn')}</div>`).join('') || empty('Списаний нет')}</div></div>
   <div class="card" data-s><div class="card-h"><h3>Самые дорогие по продуктам блюда</h3></div><div class="list">${worst.map(r => { const f = rFC(r); return `<button class="li" data-a="rec" data-id="${r.id}"><span class="tx"><b>${esc(r.name)}</b><small>цена ${rub(r.price)} · продукты ${rub(rCost(r))}</small></span><span class="end">${chip(fcTone(f), n1(f, 0) + '%')}</span></button>`; }).join('')}</div></div></div>`;
 }
@@ -227,6 +229,16 @@ function vMoney() {
   return `<div class="bar-row">${seg('money', [['sum', 'Итоги'], ['dishes', 'Блюда']])}</div>` + (tab === 'dishes' ? vRecipes() : vReports());
 }
 
-K.V = { home: vHome, stock: vStock, orders: vOrders, dishes: vRecipes, team: vStaff, checks: vChecks, money: vMoney };
+
+/* ───── ДОКУМЕНТЫ для бухгалтерии (1С) ───── */
+const DT = { in: ['inbox', 'ok', 'Поступление'], out: ['trash', 'wn', 'Списание'] };
+K.DT = DT;
+function vDocs() {
+  const tab = ui.tab.docs, nNew = S.docs.filter(d => d.st === 'new').length, l = S.docs.filter(d => tab === 'new' ? d.st === 'new' : d.st === 'done').slice(0, 40);
+  const head = `<div class="bar-row">${seg('docs', [['new', 'Ждут внесения в 1С · ' + nNew], ['done', 'Уже внесены']])}${tab === 'new' && nNew ? `<span class="sp"></span><button class="btn pri" data-s data-a="docCsvAll">${ic('inbox', 20)}Скачать всё для 1С</button>` : ''}</div>`;
+  return head + `<div class="card" data-s><div class="list">${l.map(d => `<button class="li" data-a="doc" data-id="${d.id}"><span class="ico ${DT[d.type][1]}">${ic(DT[d.type][0], 22)}</span><span class="tx"><b>${DT[d.type][2]} ${d.num}</b><small>${dm(d.date)} · ${d.type === 'in' ? esc(vend(d.sup)?.name || '') : 'отчёт смены'} · ${d.items.length} ${pl(d.items.length, ['позиция', 'позиции', 'позиций'])} · ${esc(emp(d.by)?.name || '')}</small></span><span class="end">${d.diff ? chip('wn', 'расхождение') : ''}<b>${rub(docSum(d))}</b>${ic('arrow', 18)}</span></button>`).join('') || empty(tab === 'new' ? 'Новых документов нет — всё внесено в 1С' : 'Пока ничего не внесено', 'doc')}</div></div>`;
+}
+
+K.V = { docs: vDocs, home: vHome, stock: vStock, orders: vOrders, dishes: vRecipes, team: vStaff, checks: vChecks, money: vMoney };
 K.suggestions = suggestions; K.ST = ST; K.stepper = stepper; K.venSup = venSup;
 })();
