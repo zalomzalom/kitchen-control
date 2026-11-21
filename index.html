@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0c0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kitchen Control</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="splash">
+  <i class="ember" style="left:42%;--x:-30px;animation-delay:.2s"></i><i class="ember" style="left:48%;--x:20px;animation-delay:1.1s"></i>
+  <i class="ember" style="left:54%;--x:40px;animation-delay:.6s"></i><i class="ember" style="left:58%;--x:-12px;animation-delay:1.8s"></i>
+  <i class="ember" style="left:36%;--x:24px;animation-delay:2.4s"></i>
+  <div class="sp-in">
+    <svg class="sp-logo" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><linearGradient id="spG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffb347"/></linearGradient></defs>
+      <circle class="rg" pathLength="1" cx="50" cy="50" r="44" transform="rotate(-90 50 50)"/>
+      <path class="fl" pathLength="1" d="M50 22c3 11 17 15 17 31a17 17 0 0 1-34 0c0-7 3-11 7-15 0 6 3 10 7 10 0-12-4-19 3-26z"/>
+      <path class="fi" d="M50 80a9 9 0 0 1-9-9c0-5 4-7 6-11 1 3 3 5 5 5 1-3 0-6 1-9 4 4 6 8 6 14a9 9 0 0 1-9 10z"/>
+    </svg>
+    <div class="sp-t">KITCHEN <i>CONTROL</i></div>
+    <div class="sp-s">учёт · контроль · порядок</div>
+  </div>
+</div>
+<div id="gate" hidden></div>
+<div class="app" id="app" hidden>
+  <aside class="side" id="side"></aside>
+  <section class="col">
+    <header class="top" id="top"></header>
+    <main class="main" id="main"><div id="view"></div></main>
+  </section>
+</div>
+<div id="layer"></div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script src="views.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

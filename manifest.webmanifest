@@ -1,0 +1,1 @@
+{"name":"Kitchen Control","short_name":"Kitchen","description":"Учёт продуктов, команды и подрядчиков для ресторана","start_url":"./","scope":"./","display":"standalone","orientation":"landscape","background_color":"#0c0d10","theme_color":"#0c0d10","lang":"ru","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
